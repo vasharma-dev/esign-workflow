@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PdfModule } from './pdf/pdf.module';
 import { WorkflowModule } from './workflow/workflow.module';
+import { EsignModule } from './esign/esign.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { WorkflowModule } from './workflow/workflow.module';
     }),
     PdfModule,
     WorkflowModule,
+    EsignModule,
   ],
   controllers: [AppController],
   providers: [AppService],
