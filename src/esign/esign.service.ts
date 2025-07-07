@@ -4,23 +4,22 @@ import * as fs from 'fs';
 
 @Injectable()
 export class EsignService {
-  private documensoApi = 'https://app.documenso.com/api/v1';
-  private documensoToken = 'api_9344yetb66p0lfpv';
+  private readonly documensoApi = 'https://app.documenso.com/api/v1';
+  private readonly documensoToken = 'api_9344yetb66p0lfpv';
 
-  async sendForSignature(pdfPath: string, role3Email: string) {
+  async sendForSignature(pdfPath: string, recipientEmail: string) {
     try {
-      // Step 1: Create Document Metadata
       const createDocumentResponse = await axios.post(
         `${this.documensoApi}/documents`,
         {
           title: 'Test Document',
-          externalId: `${Date.now()}`, // Custom ID (you can pass anything unique)
+          externalId: `${Date.now()}`,
           recipients: [
             {
               name: 'Role 3 User',
-              email: role3Email,
-              role: 'SIGNER', // Should be 'SIGNER' as per Documenso API
-              signingOrder: 0, // Signing order (use 0 if order doesn’t matter)
+              email: recipientEmail,
+              role: 'SIGNER',
+              signingOrder: 0,
             },
           ],
           meta: {
@@ -36,19 +35,28 @@ export class EsignService {
         },
       );
 
-      const documentId = createDocumentResponse.data?.id;
-      const uploadUrl = createDocumentResponse.data?.uploadUrl;
+      const documentData = createDocumentResponse?.data;
 
-      console.log(documentId, 'Vansh Sharma');
+      console.log('Full Documenso API Response:', createDocumentResponse?.data);
 
-      if (!documentId || !uploadUrl) {
+      if (
+        !documentData ||
+        !documentData.documentId ||
+        !documentData.uploadUrl
+      ) {
         throw new HttpException(
-          'Failed to retrieve document ID or upload URL.',
+          'Documenso API did not return valid document ID or upload URL.',
           HttpStatus.BAD_REQUEST,
         );
       }
 
+      const documentId: string = documentData.documentId;
+      const uploadUrl: string = documentData.uploadUrl;
+
+      console.log(`Document ID: ${documentId}, Upload URL: ${uploadUrl}`);
+
       const fileBuffer = fs.readFileSync(pdfPath);
+
       await axios.put(uploadUrl, fileBuffer, {
         headers: {
           'Content-Type': 'application/pdf',
@@ -67,9 +75,14 @@ export class EsignService {
         },
       );
 
-      return sendResponse.data;
+      return {
+        message: 'Document sent for signature successfully',
+        documentId: documentId,
+        data: sendResponse.data,
+      };
     } catch (error) {
-      console.error('Documenso API Error:', error.response?.data || error);
+      console.error(error);
+
       throw new HttpException(
         error.response?.data?.message ||
           'Failed to send document for signature',
